@@ -183,6 +183,11 @@ default), then lookup can fail. Operators must reconcile unknown work with the
 calling application's durable state. Do not reuse an expired request ID to retry
 an uncertain operation. See [the complete compatibility contract](contracts/README.md).
 
+Service-wheel publication uses its own `service-vVERSION` tag and private GitHub
+Release. [Release instructions](docs/RELEASE.md) include the validated publish
+script and an optional independent ARM64 GHCR workflow. Contract releases remain
+separate and are never overwritten by a service release.
+
 ## IDEA
 
 Open **this directory** as its own IDEA project with the Python plugin. Choose

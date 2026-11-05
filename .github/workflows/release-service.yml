@@ -1,0 +1,59 @@
+name: Release inference service
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'New service tag matching pyproject.toml (for example service-v1.0.1)'
+        required: true
+        type: string
+      publish_image:
+        description: 'Also publish an ARM64 service image to private GHCR'
+        required: true
+        default: false
+        type: boolean
+permissions:
+  contents: read
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+  wheel:
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels
+          path: dist
+      - name: Publish the independently versioned service wheel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SERVICE_TAG: ${{ inputs.tag }}
+        run: python scripts/publish_service.py --wheel dist/local_ollama_llm_service-$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")-py3-none-any.whl --tag "$SERVICE_TAG" --target "$GITHUB_SHA"
+  image:
+    if: inputs.publish_image
+    needs: wheel
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build and publish this repository's ARM64 image
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SERVICE_TAG: ${{ inputs.tag }}
+        run: |
+          image="ghcr.io/$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]'):$(printf '%s' "$SERVICE_TAG" | sed 's/^service-v//')"
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker build --platform linux/arm64 --label "org.opencontainers.image.revision=$GITHUB_SHA" --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" -t "$image" .
+          docker push "$image"
+      - name: Close registry session
+        if: always()
+        run: docker logout ghcr.io
