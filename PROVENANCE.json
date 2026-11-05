@@ -1,0 +1,7 @@
+{
+  "source_commit": "30fbcecb5b5a071e33afe0b268c75dd3da6192c7",
+  "upstream_commit": "a76de47f75362ef6f34fe21771383c70f90c5379",
+  "compiler": "0.25.0",
+  "runtime": "0.25.0",
+  "version": "1.0.0"
+}
