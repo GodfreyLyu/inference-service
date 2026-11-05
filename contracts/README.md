@@ -1,0 +1,50 @@
+# Shared LLM contract
+
+`llm.thrift` is the source of truth. `python/llm_contract/generated` and
+`java/demo/llm/generated` are reproducible outputs of Apache Thrift 0.25.0.
+Python applications install this directory as the `local-llm-contract` package.
+Java examples use the generated `LlmService.Client` directly with
+`TSocket`, `TFramedTransport` and strict `TBinaryProtocol`. The [Maven build](pom.xml)
+compiles the existing Java bindings and [examples](examples/java/) against
+`libthrift:0.25.0`.
+
+With JDK 11+ and Maven 3.9+, compile from the repository root without calling a service:
+
+```bash
+backend/.venv/bin/python scripts/java_thrift.py --compile-only
+```
+
+Run the [generation example](examples/java/Generate.java) against an already running service:
+
+```bash
+backend/.venv/bin/python scripts/java_thrift.py --host 127.0.0.1 --port 9091
+```
+
+The [interop probe](examples/java/InteropProbe.java) is driven by the inference
+tests to check Java/Python wire behavior. `contracts/target/` contains local build
+outputs. See the [Java walkthrough](../docs/guides/apache-thrift.md#java-example)
+for connection handling and the combined check.
+
+Run `python3 scripts/generate_thrift.py` from the repo root; `--check` compares both
+languages byte-for-byte. The Java generation suppresses timestamp annotations so
+output is reproducible. [The guide](../docs/guides/apache-thrift.md) describes the
+wire stack, error codes, request lifetime and independent project setup.
+
+Compatibility rules:
+
+- Never reuse, renumber or change the wire type/meaning of a field ID or enum value.
+- Add optional fields with new IDs; keep existing required fields. Readers skip
+  unknown fields; absence of an optional option means the service default.
+- Add RPC methods without changing old signatures. New required fields, renamed
+  methods and semantic changes require a new service/version and coordinated rollout.
+- Unknown enum values/error codes must fail safely. A new server must preserve the
+  semantics old clients rely on, including cancellation and retention guarantees.
+- The earlier uncommitted review-specific IDL was never a released generic v1.
+  It is wire-incompatible and has been replaced; backend and service must migrate
+  together. Future generic v1 changes follow the rules above.
+
+Requests have no application type, source-language field, review heading or output
+validation. Supported message roles are `system`, `user` and `assistant`. Supported
+options are output token cap, temperature, top-p and a nonnegative signed i64 seed.
+The service has one pinned model per process; applications can assert the returned
+identity without reproducing its runtime configuration.
