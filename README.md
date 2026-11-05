@@ -129,9 +129,12 @@ this project root as its complete context:
 docker build --platform linux/arm64 -t inference-service:local .
 ```
 
-Compose defaults to CPU development, pulls a missing pinned model, binds published
-ports to loopback, persists models in its own named volume, and applies memory,
-CPU, process and shutdown limits. It does not attach any existing cluster or data.
+Without `.env` or shell overrides, Compose selects CPU development and allows a
+missing pinned model to be pulled. A copied `.env.example` takes precedence for
+these values: explicitly set `REQUIRE_GPU=false` for CPU and
+`MODEL_PULL_IF_MISSING=true` to allow downloads. Compose binds published ports to
+loopback, persists models in its own named volume, and applies memory, CPU, process
+and shutdown limits. It does not attach any existing cluster or data.
 
 ```bash
 docker compose up -d --build

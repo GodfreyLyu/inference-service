@@ -32,6 +32,18 @@ residency, production HA, Kubernetes templates or service-mesh policy applicatio
 GUI SDK/run configuration selection. Those remain explicit manual/opt-in steps.
 The migration does not inspect or change the original Minikube or Argo CD state.
 
-GitHub Actions and clean-clone results are recorded by the coordinating migration
-report after the repository is committed and pushed. The checked-in CI only
-checks out this repository.
+## Independent clean clone and hosted CI
+
+An authenticated HTTPS clone of this private repository at commit
+`084a1412f02e6fc642fb0ee987a625f68a69d4ba` was created in a separate temporary
+directory. The documented `python3.12 -m venv .venv` and `scripts/bootstrap.py`
+commands installed dependencies and normal wheels successfully. The full
+`check.py --java` gate then passed all 46 tests, lint, format and generation
+checks. Maven was supplied as an external tool executable, not a source dependency.
+No original or sibling application checkout was required.
+
+[GitHub Actions run 41948892935](https://github.com/GodfreyLyu/inference-service/actions/runs/41948892935)
+passed both jobs: the independent Python/Java/compiler/Compose gate with JDK11
+and the ARM64 image build on a fresh hosted ARM runner. The hosted image build
+also verifies that the pinned native packages remain retrievable, beyond local
+Docker layer-cache reuse. The checked-in CI checks out only this repository.
