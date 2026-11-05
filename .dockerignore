@@ -1,0 +1,11 @@
+.git
+.venv
+.env
+.idea
+__pycache__
+.pytest_cache
+contracts/target
+models
+build
+dist
+.tools

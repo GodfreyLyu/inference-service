@@ -1,0 +1,81 @@
+# Single instance template. Supply an immutable image digest and a provisioned model PVC.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference-service
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: {app: inference-service}
+  template:
+    metadata:
+      labels: {app: inference-service}
+    spec:
+      terminationGracePeriodSeconds: 40
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      containers:
+        - name: inference
+          image: ghcr.io/godfreylyu/inference-service:1.0.0
+          ports:
+            - {name: thrift, containerPort: 9091}
+            - {name: health, containerPort: 11435}
+          env:
+            - {name: REQUIRE_GPU, value: 'true'}
+            - {name: MODEL_PULL_IF_MISSING, value: 'false'}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: '2', memory: 3Gi}
+            limits: {cpu: '4', memory: 6Gi}
+          startupProbe:
+            httpGet: {path: /ready, port: health}
+            periodSeconds: 10
+            failureThreshold: 130
+          readinessProbe:
+            httpGet: {path: /ready, port: health}
+          livenessProbe:
+            httpGet: {path: /live, port: health}
+          volumeMounts:
+            - {name: models, mountPath: /models}
+            - {name: tmp, mountPath: /tmp}
+            # The existing krunkit host must supply its render node; adapt per cluster.
+            - {name: dri, mountPath: /dev/dri}
+      volumes:
+        - name: models
+          persistentVolumeClaim: {claimName: inference-models}
+        - name: tmp
+          emptyDir: {sizeLimit: 1Gi}
+        - name: dri
+          hostPath: {path: /dev/dri, type: Directory}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inference-service
+spec:
+  selector: {app: inference-service}
+  ports:
+    - {name: thrift, port: 9091, targetPort: thrift}
+    - {name: health, port: 11435, targetPort: health}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: inference-service
+spec:
+  podSelector:
+    matchLabels: {app: inference-service}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {app: review-worker}
+      ports:
+        - {port: 9091, protocol: TCP}

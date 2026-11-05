@@ -1,0 +1,30 @@
+name: inference-service-local
+services:
+  inference:
+    image: inference-service:local
+    build: .
+    platform: linux/arm64
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      REQUIRE_GPU: ${REQUIRE_GPU:-false}
+      MODEL_PULL_IF_MISSING: ${MODEL_PULL_IF_MISSING:-true}
+      THRIFT_BIND_HOST: 0.0.0.0
+      HEALTH_BIND_HOST: 0.0.0.0
+    ports:
+      - 127.0.0.1:9091:9091
+      - 127.0.0.1:11435:11435
+    volumes:
+      - models:/models
+    tmpfs:
+      - /tmp:size=1g,uid=10001,gid=10001,mode=1777
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    cpus: 4
+    mem_limit: 6g
+    pids_limit: 256
+    stop_grace_period: 40s
+volumes:
+  models:

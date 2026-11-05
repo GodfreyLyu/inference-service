@@ -1,0 +1,27 @@
+# OPTIONAL Istio configuration. Requires an installed, configured Istio mesh and injected pods.
+# Replace namespace and service account names to match your deployment. Never apply blindly.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: inference-mtls
+spec:
+  selector:
+    matchLabels: {app: inference-service}
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: inference-worker-only
+spec:
+  selector:
+    matchLabels: {app: inference-service}
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: [cluster.local/ns/review/sa/review-worker]
+      to:
+        - operation:
+            ports: ['9091']

@@ -1,0 +1,14 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Functional Tests" type="PythonConfigurationType" factoryName="Python">
+    <module name="inference-service" />
+    <option name="SDK_HOME" value="$PROJECT_DIR$/.venv/bin/python" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="SCRIPT_NAME" value="pytest" />
+    <option name="PARAMETERS" value="-m functional" />
+    <option name="IS_MODULE_SDK" value="false" />
+    <option name="MODULE_MODE" value="true" />
+    <option name="ADD_CONTENT_ROOTS" value="false" />
+    <option name="ADD_SOURCE_ROOTS" value="false" />
+    <method v="2" />
+  </configuration>
+</component>

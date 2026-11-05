@@ -1,0 +1,41 @@
+name: Independent inference checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+      - name: Install locked packages and normal wheels
+        run: python -m venv .venv && .venv/bin/python scripts/bootstrap.py
+      - name: Install exact Thrift compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends bison cmake flex g++ make
+          bash scripts/install_thrift.sh
+          echo "$PWD/.tools/thrift/build/compiler/cpp/bin" >> "$GITHUB_PATH"
+      - name: Unit, functional TCP, Java interoperability and generation checks
+        run: .venv/bin/python scripts/check.py --java
+      - name: Compose validation
+        run: docker compose config --quiet
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels
+          path: dist/*.whl
+  arm64-image:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v6
+      - run: docker build --platform linux/arm64 -t inference-service:ci .
